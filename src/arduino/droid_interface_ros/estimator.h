@@ -1,7 +1,7 @@
 
 /*
  * Reads sensors (encoders) to calculate current velocity estimate (we'll leave pose for higher level functions).
- * Calculates actuator (motor) inputs using PID.
+ * Calculates actuator (motor) inputs using PI.
  */
 
 #ifndef __ESTIMATOR_H
@@ -82,7 +82,7 @@ public:
   
     //by setting TOP, we'll change the frequency to:
     //freq = 48e6 / [(TOP + 1) * prescaler]
-    TC->CC[0].reg = 3749;  //set compare value: freq = 48e6 / [3750 * 256] = ~50Hz ==> period of 20 ms
+    TC->CC[0].reg = 3749;  //set compare value: freq = 48e6 / [3750 * 256] = 50Hz ==> period of 20 ms
     while (TC->STATUS.bit.SYNCBUSY == 1); // wait for sync
     
     // Interrupts
@@ -125,7 +125,12 @@ public:
     return target - estimate;
   }
 
-  ivector CalcEffort(void) //simple one-to-one for now
+/*
+ * CalcEffort uses PI control to try to reach target speed. Note that we're using integer maths, which
+ * means that we do everything with ints scaled by 128. That is, Kp and Ki are 128 times larger than they
+ * would normally be and then we divide by 128 at the end to get the effort, which is sent to the sabertooth.
+ */
+  ivector CalcEffort(void) 
   {
     static ivector sumError(2);
 
@@ -161,9 +166,11 @@ void TC3_Handler()  // Interrupt on overflow
   {
     TC->INTFLAG.bit.OVF = 1;    // writing a one clears the flag
 
+    //take a snapshot of the encoders for precise measurement
     if(encoder1) encoder1->TakeSnapshot();
     if(encoder2) encoder2->TakeSnapshot();
 
+    //set PID flag to 1 to calculate control values at our leisure
     readyToPID = 1;
   }
 }

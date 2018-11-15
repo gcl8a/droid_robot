@@ -5,15 +5,8 @@
 
 #include <ros.h>
 
-#include <geometry_msgs/Twist.h>
+//#include <geometry_msgs/Twist.h>
 #include <droid/MotorData.h>
-
-//publishers//ros::Publisher pubUltrasonic("ultrasonic", &flightTime);
-//ros::Publisher pubReflectance("reflectance", &reflectance_data);
-
-//twist response -- needs to be deprecated
-//void TwistCallback(const geometry_msgs::Twist& twist);
-//ros::Subscriber<geometry_msgs::Twist> subTwistCmd("cmd_vel", TwistCallback);
 
 //motor callback
 void MotorCallback(const droid::MotorData& motorCmd);
@@ -40,13 +33,8 @@ public:
     UGV::Init();
 
     nh.initNode();
-    
     nh.advertise(pubOdom);
-  //  nh.advertise(pubReflectance);
-    
-    //nh.subscribe(subTwistCmd);
     nh.subscribe(subMotorCmd);
-  //  nh.subscribe(subRobotCmd);
   }
 
   void MainLoop(void)
@@ -55,17 +43,12 @@ public:
     UGV::MainLoop();
   }
 
-  void ProcessTwist(const geometry_msgs::Twist& twist)
-  {
-    SetTwistSpeed(twist.linear.x, twist.angular.z);
-  }
-
   void ProcessMotorCommand(const droid::MotorData& motor_cmd)
   {
     if(motor_cmd.mode == CMD_MOT_IDLE)
       Idle();
     if(motor_cmd.mode == CMD_MOT_VEL)
-      SetWheelSpeeds(motor_cmd.left, motor_cmd.right);
+      SetTargetWheelSpeeds(motor_cmd.left, motor_cmd.right);
   }
 
   void ProcessPID(void)

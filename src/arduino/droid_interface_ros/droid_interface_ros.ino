@@ -10,11 +10,6 @@
 //goes in ros_ugv.cpp if I ever get my act together...
 ROSUGV robot;
 
-//void TwistCallback(const geometry_msgs::Twist& twist)
-//{
-//  robot.ProcessTwist(twist);
-//}
-
 void MotorCallback(const droid::MotorData& motor_cmd)
 {
   robot.ProcessMotorCommand(motor_cmd);
@@ -39,31 +34,18 @@ void loop(void)
   if(CheckDebugSerial())
   {
     //all in m/s, rad/s
-    float vel = debugString.toFloat();
+    float left = debugString.toFloat();
     uint8_t comma = debugString.indexOf(',');
-    float ang = debugString.substring(comma+1).toFloat();
+    float right = debugString.substring(comma+1).toFloat();
 
-    DEBUG_SERIAL.print("Setting u = ");
-    DEBUG_SERIAL.println(vel);
-    DEBUG_SERIAL.print("Setting omega = ");
-    DEBUG_SERIAL.println(ang);
+    DEBUG_SERIAL.print("Setting left = ");
+    DEBUG_SERIAL.println(left);
+    DEBUG_SERIAL.print("Setting right = ");
+    DEBUG_SERIAL.println(right);
 
-    robot.SetTwistSpeed(vel, ang);
+    robot.SetTargetWheelSpeeds(left, right);
 
     debugString = "";
   }
 }
-
-
-/////obsolete stuff nedenfor
-
-//callback for commands...
-//void CommandCallback(const droid_bot::DroidDatum& cmd)
-//{
-//  robot.ProcessCommand(cmd);
-//}
-//
-////...and the subscriber for commands
-//ros::Subscriber<droid_bot::DroidDatum> subRobotCmd("robotCmd", CommandCallback);
-
 
