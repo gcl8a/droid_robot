@@ -31,6 +31,7 @@ void loop(void)
 {
   robot.MainLoop();
 
+  if(CheckRadio()) HandleRadio();
   if(CheckDebugSerial())
   {
     //all in m/s, rad/s
