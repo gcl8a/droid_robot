@@ -30,21 +30,25 @@ protected:
   ivector target;   //target speed, using integer math to speed up the processing
   ivector estimate; //wheel speed estimate
 
-  ivector targetTwist;  //target speed and and ang. vel.
-  ivector estTwist;     //speed estimate
+//  ivector targetTwist;  //target speed and and ang. vel.
+//  ivector estTwist;     //speed estimate
 
   /*
    * Ideally, sensor inputs would be "generic", but here I'll just hard code the encoders to see how I like this format
    */
   imatrix H; //observation matrix
 
-  TIArray<Encoder> encoders;
+  //TIArray<Encoder> encoders;
+
+  //Encoder encoder1ab, encoder2ab;
 
   uint16_t Kp = KP_DEF;
   uint16_t Ki = KI_DEF;
 
 public:
-  MotionController(void) : target(2), estimate(2), H(2,2), encoders(2) //hard code encoders for the moment...
+  MotionController(void) : target(2), estimate(2), H(2,2)//, encoders(2)//, 
+//                          encoder1(ENCODER_1A, ENCODER_1B),
+//                          encoder2(ENCODER_2A, ENCODER_2B)
   {
     H[0][0] = 1;
     H[1][1] = 1;
@@ -55,8 +59,8 @@ public:
     DEBUG_SERIAL.println("MotionController::Init");
     SetupEncoders();
 
-    encoders[0] = encoder1;
-    encoders[1] = encoder2;
+//    encoders[0] = encoder1;
+//    encoders[1] = encoder2;
 
     /*
      * Set up TC3 for periodically calling the PID routine 
@@ -107,8 +111,8 @@ public:
   {
     ivector encReadings(2);
     
-    if(encoders[0]) encReadings[0] = encoders[0]->CalcDelta();
-    if(encoders[1]) encReadings[1] = encoders[1]->CalcDelta();
+    encReadings[0] = encoder1.CalcDelta();
+    encReadings[1] = encoder2.CalcDelta();
 
     return encReadings;
   }
@@ -160,8 +164,8 @@ void TC3_Handler()  // Interrupt on overflow
     TC->INTFLAG.bit.OVF = 1;    // writing a one clears the flag
 
     //take a snapshot of the encoders for precise measurement
-    if(encoder1) encoder1->TakeSnapshot();
-    if(encoder2) encoder2->TakeSnapshot();
+    encoder1.TakeSnapshot();
+    encoder2.TakeSnapshot();
 
     //set PID flag to 1 to calculate control values at our leisure
     readyToPID = 1;

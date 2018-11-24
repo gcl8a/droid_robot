@@ -25,12 +25,12 @@ public:
   : pinIntA(pinA), pinIntB(pinB)
   {}
 
-  void ProcessInterrupt(uint8_t pinInt) //volatile
+  volatile void ProcessInterrupt(uint8_t pinInt) //volatile
   {
     int8_t del = -1;           //default for pin A
     if (pinInt == pinIntB) del = 1; //if it's pin B, reverse everything
 
-    if (digitalRead(pinIntA) == digitalRead(pinIntB)) 
+    if (digitalRead(pinIntA) == digitalRead(pinIntB)) //hard-wire to speed up
     { 
       del *= -1; //turning the other way
     }
@@ -53,18 +53,18 @@ public:
   }
 };
 
-Encoder* encoder1 = NULL;
-Encoder* encoder2 = NULL;
+Encoder encoder1(ENCODER_1A, ENCODER_1B);
+Encoder encoder2(ENCODER_2A, ENCODER_2B);
 
-void EncoderHandler1A(void) {if(encoder1) encoder1->ProcessInterrupt(ENCODER_1A);}
-void EncoderHandler1B(void) {if(encoder1) encoder1->ProcessInterrupt(ENCODER_1B);}
-void EncoderHandler2A(void) {if(encoder2) encoder2->ProcessInterrupt(ENCODER_2A);}
-void EncoderHandler2B(void) {if(encoder2) encoder2->ProcessInterrupt(ENCODER_2B);}
+void EncoderHandler1A(void) {encoder1.ProcessInterrupt(ENCODER_1A);}
+void EncoderHandler1B(void) {encoder1.ProcessInterrupt(ENCODER_1B);}
+void EncoderHandler2A(void) {encoder2.ProcessInterrupt(ENCODER_2A);}
+void EncoderHandler2B(void) {encoder2.ProcessInterrupt(ENCODER_2B);}
 
 void SetupEncoders(void)
 {
-  encoder1 = new Encoder(ENCODER_1A, ENCODER_1B);
-  encoder2 = new Encoder(ENCODER_2A, ENCODER_2B);
+//  encoder1 = new Encoder(ENCODER_1A, ENCODER_1B);
+//  encoder2 = new Encoder(ENCODER_2A, ENCODER_2B);
   
   //(almost) every pin is an interrupt on the SAMD, so use attachInterrupt()
   attachInterrupt(ENCODER_1A, EncoderHandler1A, CHANGE);
