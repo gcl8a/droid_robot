@@ -10,9 +10,14 @@
 //goes in ros_ugv.cpp if I ever get my act together...
 ROSUGV robot;
 
-void TwistCallback(const geometry_msgs::Twist& cmd_vel)
+void MotorCallback(const droid::MotorData& motor_cmd)
 {
-  robot.SetTargetSpeed(cmd_vel.linear.x, cmd_vel.angular.z);
+  robot.ProcessMotorCommand(motor_cmd);
+}
+
+void TargetSpeedCallback(const geometry_msgs::Vector3& targetSpeeds)
+{
+  robot.SetTargetWheelSpeeds(targetSpeeds.x, targetSpeeds.y);
 }
 
 //N.B.: No need to start SerialUSB manually in ROS, as the constructors take care of that for us
@@ -23,7 +28,6 @@ void setup()
   DEBUG_SERIAL.println("setup");
 
   robot.Init();
-  InitRadio();
  
   DEBUG_SERIAL.println("/setup");
 }
@@ -34,18 +38,19 @@ void loop(void)
 
   if(CheckRadio())
   {
-    ivector speeds = HandleRadio();
-    if(speeds.Length() == 3)
-    {
-      robot.SetTargetSpeed(speeds[0] / 512.0, speeds[1] / 512.0);
+//    ivector speeds = HandleRadio();
+//    if(speeds.Length() == 3)
+//    {
+//      robot.SetTargetWheelSpeeds(speeds[0], speeds[1]);
+//      
+//    DEBUG_SERIAL.print("Setting left = ");
+//    DEBUG_SERIAL.println(speeds[0]);
+//    DEBUG_SERIAL.print("Setting right = ");
+//    DEBUG_SERIAL.println(speeds[1]);
+//
+//    }
+    DEBUG_SERIAL.println("radio");
 
-    DEBUG_SERIAL.print(millis());
-    DEBUG_SERIAL.print(": l = ");
-    DEBUG_SERIAL.print(speeds[0]);
-    DEBUG_SERIAL.print(", r = ");
-    DEBUG_SERIAL.println(speeds[1]);
-
-    }
   }
   
   if(CheckDebugSerial())

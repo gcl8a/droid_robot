@@ -37,7 +37,11 @@ bool CheckRadio(void)
 {
   bool retVal = false;
 
+  DEBUG_SERIAL.println("radio");
+
   if(radio.receiveDone()) retVal = true;
+  
+  DEBUG_SERIAL.println("done");
 
   return retVal;
 }
@@ -65,7 +69,7 @@ ivector HandleRadio(void)
     {
       case CMD_JOYSTICK:
         if(length != 8) return retVector;  //not the right sized packet: return zero length vector
-        retVector = ivector(3);
+        retVector = ivector(6);
         memcpy(&retVector[0], &data[2], 6);
         return retVector;
     }

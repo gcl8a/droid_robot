@@ -10,7 +10,7 @@
 
 #include "comm.h"
 #include "sabertooth.h"
-#include "imu.h"
+//#include "imu.h"
 
 #include "estimator.h"
 
@@ -45,21 +45,39 @@ int baseSpeed = 0;
 #define RADIANS_PER_TICK (0.00316)
 #define RADIUS_WHEEL (0.081)
 #define TICKS_PER_METER 3906
-#define RADIUS_ROBOT (0.2)
-//  int16_t radius = 780;
-#define LOOP_RATE 50   //Hz
+#define ROBOT_RADIUS 0.227
+#define ROBOT_RADIUS_IN_TICKS (ROBOT_RADIUS * TICKS_PER_METER)
+
+/*
+ * Holds all the kinematics, both pose and velocities
+ */
+struct Pose
+{
+  float x = 0; //ticks
+  float y = 0; //ticks
+  float cos_theta = 1; //unitless
+  float sin_theta = 0; //unitless
+
+  float u = 0; //ticks / period
+  float omega = 0; //rad / period
+};
 
 class UGV
 {  
 protected:
-  ivector estimate;
+  ivector wheelSpeeds;
   ivector effort;
   
   Sabertooth driver;
   MotionController controller;
 
+  //uint16_t radiusBase_mm = 227;
+  float base_radius = 0.227;
+
+  Pose currPose;
+
 public:
-  UGV(void) : estimate(2), effort(2) //sensorL(REFLECTANCE_L), sensorR(REFLECTANCE_R)
+  UGV(void) : wheelSpeeds(2), effort(2) //sensorL(REFLECTANCE_L), sensorR(REFLECTANCE_R)
   {}
   
   virtual void Init(void)
@@ -92,12 +110,14 @@ public:
 //    DEBUG_SERIAL.print("readyToPID");
 //    DEBUG_SERIAL.print('\n');
       //////////!!!!!!!!!
-      estimate = controller.CalcEstimate(); //wheel velocity is ticks/period
+      wheelSpeeds = controller.CalcWheelSpeeds(); //wheel velocity is ticks / period
 
-      DEBUG_SERIAL.print(estimate[0]);
+      DEBUG_SERIAL.print(wheelSpeeds[0]);
       DEBUG_SERIAL.print('\t');
-      DEBUG_SERIAL.print(estimate[1]);
+      DEBUG_SERIAL.print(wheelSpeeds[1]);
       DEBUG_SERIAL.print('\t');
+
+      UpdateKinematics(wheelSpeeds[0], wheelSpeeds[1]);
 
 //      if(cmdMode == CMD_VEL)
       {
@@ -111,7 +131,7 @@ public:
       }
   }
   
-  void SetTargetWheelSpeeds(float left, float right)
+  void SetTargetWheelSpeeds(float left, float right) //in m / s
   {
     //do calculations in m/s
     float speedLeft = left;
@@ -129,11 +149,20 @@ public:
     controller.SetTarget(speed);
   }
 
+  void SetTargetSpeed(float u, float omega) //in m / s
+  {
+    //do calculations in m/s
+    float speedLeft = u - omega * ROBOT_RADIUS;
+    float speedRight = u + omega * ROBOT_RADIUS;
+
+    SetTargetWheelSpeeds(speedLeft, speedRight);
+  }
+
   dvector EstimateWheelSpeeds(void)
   {
     dvector x(2);
-    x[0] = (estimate[0] * LOOP_RATE) / (float)(TICKS_PER_METER);
-    x[1] = (estimate[1] * LOOP_RATE) / (float)(TICKS_PER_METER);
+    x[0] = (wheelSpeeds[0] * LOOP_RATE) / (float)(TICKS_PER_METER);
+    x[1] = (wheelSpeeds[1] * LOOP_RATE) / (float)(TICKS_PER_METER);
 
     return x;
   }
@@ -143,6 +172,27 @@ public:
     driver.SetPowers(effort[0], effort[1]);
     
     return effort;
+  }
+
+  /*
+   * Updates pose based on encoder ticks in this period.
+   */
+  Pose UpdateKinematics(int16_t ticksL, int16_t ticksR) //wheel speeds in ticks / period
+  {
+    currPose.u = (ticksL + ticksR) / 2.0; //ticks / period
+    currPose.omega = (ticksR - ticksL)/ (2.0 * ROBOT_RADIUS_IN_TICKS); //rad / period
+
+    currPose.x += currPose.u * currPose.cos_theta; //ticks
+    currPose.y += currPose.u * currPose.sin_theta; //ticks
+
+    currPose.cos_theta -= currPose.omega * currPose.sin_theta; //unitless
+    currPose.sin_theta += currPose.omega * currPose.cos_theta; //unitless
+
+    float normalizer = sqrt(currPose.cos_theta * currPose.cos_theta + currPose.sin_theta * currPose.sin_theta);
+    currPose.cos_theta /= normalizer;
+    currPose.sin_theta /= normalizer;
+
+    return currPose;
   }
 };
 

@@ -5,12 +5,10 @@
 
 #include <ros.h>
 
-//#include <geometry_msgs/Twist.h>
-#include <droid/MotorData.h>
+#include <tf/transform_broadcaster.h>
+#include <nav_msgs/Odometry.h>
 
-//motor callback
-void MotorCallback(const droid::MotorData& motorCmd);
-ros::Subscriber<droid::MotorData> subMotorCmd("motor_targets", MotorCallback);
+void TwistCallback(const geometry_msgs::Twist& cmd_vel);
 
 #define CMD_MOT_IDLE  0
 #define CMD_MOT_VEL   1
@@ -21,11 +19,15 @@ protected:
   //node handler
   ros::NodeHandle nh;
 
-  droid::MotorData odomData;
-  ros::Publisher pubOdom;//("odom", &odomData);
+  nav_msgs::Odometry odom; 
+  ros::Publisher odom_pub;
+
+  tf::TransformBroadcaster odom_broadcaster;
+  
+  ros::Subscriber<geometry_msgs::Twist> subCmdVel;
 
 public:
-  ROSUGV(void) : pubOdom("encData", &odomData) //not sure why this works...odomData is a member datum
+  ROSUGV(void) : odom_pub("odom", &odom), subCmdVel("cmd_vel", TwistCallback)
   {}
   
   void Init(void)
@@ -33,8 +35,10 @@ public:
     UGV::Init();
 
     nh.initNode();
-    nh.advertise(pubOdom);
-    nh.subscribe(subMotorCmd);
+    nh.advertise(odom_pub);
+
+    nh.subscribe(subCmdVel);
+    odom_broadcaster.init(nh);
   }
 
   void MainLoop(void)
@@ -43,27 +47,54 @@ public:
     UGV::MainLoop();
   }
 
-  void ProcessMotorCommand(const droid::MotorData& motor_cmd)
-  {
-    if(motor_cmd.mode == CMD_MOT_IDLE)
-      Idle();
-    if(motor_cmd.mode == CMD_MOT_VEL)
-      SetTargetWheelSpeeds(motor_cmd.left, motor_cmd.right);
-  }
-
   void ProcessPID(void)
   {
     UGV::ProcessPID();
 
-    //get the odometry data (ignoring covariance for now...bit of a waste)
-    dvector x = EstimateWheelSpeeds();
+    //first, we'll publish the transform over tf                
+    geometry_msgs::Quaternion odom_quat;
+      
+    odom_quat.x = 0.0;
+    odom_quat.y = 0.0;
 
-    odomData.mode  = 1;
-    odomData.left  = x[0];
-    odomData.right = x[1];
+    //crap...this is a waste -- can I save cos_theta/2 ?
+    float theta = atan2(currPose.cos_theta, currPose.sin_theta);
+    odom_quat.z = sin(theta / 2.0);
+    odom_quat.w = cos(theta / 2.0);
+      
+    geometry_msgs::TransformStamped odom_trans;
+    odom_trans.header.stamp = nh.now();//now; I don't like this...
+    odom_trans.header.frame_id = "odom";
+    odom_trans.child_frame_id = "base_link";
+      
+    odom_trans.transform.translation.x = currPose.x / TICKS_PER_METER;
+    odom_trans.transform.translation.y = currPose.y / TICKS_PER_METER;
+    odom_trans.transform.translation.z = 0.0;
+    odom_trans.transform.rotation = odom_quat;
+      
+    //send the transform
+    odom_broadcaster.sendTransform(odom_trans);
 
-    pubOdom.publish(&odomData);
+    nav_msgs::Odometry odom;
+    odom.header.stamp = nh.now();
+    odom.header.frame_id = "odom";
+      
+    //set the position
+    odom.pose.pose.position.x = currPose.x / TICKS_PER_METER;
+    odom.pose.pose.position.y = currPose.y / TICKS_PER_METER;
+    odom.pose.pose.position.z = 0.0;
+    odom.pose.pose.orientation = odom_quat;
+      
+    //set the velocity
+    odom.child_frame_id = "base_link";
+    odom.twist.twist.linear.x = currPose.u / TICKS_PER_METER;
+    odom.twist.twist.linear.y = 0;
+    odom.twist.twist.angular.z = currPose.omega;
+      
+    //publish the message
+    odom_pub.publish(&odom);
   }
 };
+
 
 #endif

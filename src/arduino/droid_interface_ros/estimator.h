@@ -22,6 +22,8 @@ volatile uint8_t readyToPID = 0;
 #define KP_DEF 64
 #define KI_DEF 16
 
+#define LOOP_RATE 50   //Hz
+
 class MotionController
 { 
 protected: 
@@ -82,7 +84,9 @@ public:
   
     //by setting TOP, we'll change the frequency to:
     //freq = 48e6 / [(TOP + 1) * prescaler]
-    TC->CC[0].reg = 3749;  //set compare value: freq = 48e6 / [3750 * 256] = 50Hz ==> period of 20 ms
+    //so TOP = 48e6 / [freq * prescaler] - 1
+    uint32_t TOP = 48000000ul / (LOOP_RATE * 256) - 1;
+    TC->CC[0].reg = TOP;  //set compare value: freq = 48e6 / [3750 * 256] = 50Hz ==> period of 20 ms
     while (TC->STATUS.bit.SYNCBUSY == 1); // wait for sync
     
     // Interrupts
@@ -99,25 +103,14 @@ public:
     DEBUG_SERIAL.println("/MotionController::Init");
   }
 
-  ivector MakeObservation(void)
+  ivector CalcWheelSpeeds(void)
   {
-//    DEBUG_SERIAL.println("MakeObservation");
-
     ivector encReadings(2);
-    //...
+    
     if(encoders[0]) encReadings[0] = encoders[0]->CalcDelta();
     if(encoders[1]) encReadings[1] = encoders[1]->CalcDelta();
-    
-    ivector observation = H * encReadings;
-    
-//    DEBUG_SERIAL.println("/MakeObservation");
-    return observation;    
-  }
 
-  ivector CalcEstimate(void)
-  {
-    estimate = MakeObservation(); //no filtering, just observe for now
-    return estimate;
+    return encReadings;
   }
 
   ivector CalcError(void)
