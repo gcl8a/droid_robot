@@ -3,14 +3,14 @@
  * Serves as the interface between ROS nodes on the main board and motor drivers, etc.
  */
  
-#define USE_USBCON
+//#define USE_USBCON
 
 #include "ros_ugv.h"
 
 //goes in ros_ugv.cpp if I ever get my act together...
 ROSUGV robot;
 
-void TwistCallback(const geometry_msgs::Twist& cmd_vel)
+void CmdVelCallback(const geometry_msgs::Twist& cmd_vel)
 {
   robot.SetTargetSpeed(cmd_vel.linear.x, cmd_vel.angular.z);
 }
@@ -37,14 +37,7 @@ void loop(void)
     ivector speeds = HandleRadio();
     if(speeds.Length() == 3)
     {
-      robot.SetTargetSpeed(speeds[0] / 512.0, speeds[1] / 512.0);
-
-    DEBUG_SERIAL.print(millis());
-    DEBUG_SERIAL.print(": l = ");
-    DEBUG_SERIAL.print(speeds[0]);
-    DEBUG_SERIAL.print(", r = ");
-    DEBUG_SERIAL.println(speeds[1]);
-
+      robot.SetTargetSpeed(speeds[0] / 1024.0, -speeds[1] / 256.0);
     }
   }
   
@@ -60,7 +53,7 @@ void loop(void)
     DEBUG_SERIAL.print("Setting right = ");
     DEBUG_SERIAL.println(right);
 
-    robot.SetTargetWheelSpeeds(left, right);
+    robot.SetTargetSpeed(left, right);
 
     debugString = "";
   }

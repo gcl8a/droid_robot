@@ -8,7 +8,7 @@
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 
-void TwistCallback(const geometry_msgs::Twist& cmd_vel);
+void CmdVelCallback(const geometry_msgs::Twist& cmd_vel);
 
 #define CMD_MOT_IDLE  0
 #define CMD_MOT_VEL   1
@@ -27,7 +27,7 @@ protected:
   ros::Subscriber<geometry_msgs::Twist> subCmdVel;
 
 public:
-  ROSUGV(void) : odom_pub("odom", &odom), subCmdVel("cmd_vel", TwistCallback)
+  ROSUGV(void) : odom_pub("odom", &odom), subCmdVel("cmd_vel", CmdVelCallback)
   {}
   
   void Init(void)

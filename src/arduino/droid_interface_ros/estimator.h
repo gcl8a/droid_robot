@@ -7,22 +7,19 @@
 #ifndef __ESTIMATOR_H
 #define __ESTIMATOR_H
 
-#include <TIArray.h>
-#include <matrix.h>
+#include <vector.h>
 
-#define imatrix TMatrix<int16_t>
 #define ivector TVector<int16_t>
 
 #include "encoder.h"
 
 volatile uint8_t readyToPID = 0;
 
-//SetPIDCoeffs(64, 16); //defaults
 #define INTEGRAL_CAP 24000 //note that the comparison is sum > (INTEGRAL_CAP / Ki) so that changing Ki doesn't affect the cap
 #define KP_DEF 64
 #define KI_DEF 16
 
-#define LOOP_RATE 50   //Hz
+#define LOOP_RATE 50 //Hz
 
 class MotionController
 { 
@@ -30,37 +27,16 @@ protected:
   ivector target;   //target speed, using integer math to speed up the processing
   ivector estimate; //wheel speed estimate
 
-//  ivector targetTwist;  //target speed and and ang. vel.
-//  ivector estTwist;     //speed estimate
-
-  /*
-   * Ideally, sensor inputs would be "generic", but here I'll just hard code the encoders to see how I like this format
-   */
-  imatrix H; //observation matrix
-
-  //TIArray<Encoder> encoders;
-
-  //Encoder encoder1ab, encoder2ab;
-
   uint16_t Kp = KP_DEF;
   uint16_t Ki = KI_DEF;
 
 public:
-  MotionController(void) : target(2), estimate(2), H(2,2)//, encoders(2)//, 
-//                          encoder1(ENCODER_1A, ENCODER_1B),
-//                          encoder2(ENCODER_2A, ENCODER_2B)
-  {
-    H[0][0] = 1;
-    H[1][1] = 1;
-  }
+  MotionController(void) : target(2), estimate(2) {}
 
   void Init(void)
   {
     DEBUG_SERIAL.println("MotionController::Init");
     SetupEncoders();
-
-//    encoders[0] = encoder1;
-//    encoders[1] = encoder2;
 
     /*
      * Set up TC3 for periodically calling the PID routine 
@@ -90,7 +66,8 @@ public:
     //freq = 48e6 / [(TOP + 1) * prescaler]
     //so TOP = 48e6 / [freq * prescaler] - 1
     uint32_t TOP = 48000000ul / (LOOP_RATE * 256) - 1;
-    TC->CC[0].reg = TOP;  //set compare value: freq = 48e6 / [3750 * 256] = 50Hz ==> period of 20 ms
+
+    TC->CC[0].reg = TOP; 
     while (TC->STATUS.bit.SYNCBUSY == 1); // wait for sync
     
     // Interrupts
@@ -109,12 +86,10 @@ public:
 
   ivector CalcWheelSpeeds(void)
   {
-    ivector encReadings(2);
-    
-    encReadings[0] = encoder1.CalcDelta();
-    encReadings[1] = encoder2.CalcDelta();
+    estimate[0] = encoder1.CalcDelta();
+    estimate[1] = encoder2.CalcDelta();
 
-    return encReadings;
+    return estimate;
   }
 
   ivector CalcError(void)

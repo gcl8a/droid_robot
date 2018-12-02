@@ -6,7 +6,11 @@
 
 #define ivector TVector<int16_t>
 
-#define DEBUG_SERIAL Serial1
+#ifdef USE_USBCON
+  #define DEBUG_SERIAL Serial1
+#else
+  #define DEBUG_SERIAL SerialUSB
+#endif
 
 String debugString;
 boolean CheckDebugSerial(void) //returns true upon newline, not just a character
@@ -24,7 +28,7 @@ boolean CheckDebugSerial(void) //returns true upon newline, not just a character
   return false;
 }
 
-RFM69 radio(10, 5, false, digitalPinToInterrupt(5));
+RFM69 radio(10, A0, false, digitalPinToInterrupt(A0));
 
 void InitRadio(void)
 {

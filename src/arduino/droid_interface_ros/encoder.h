@@ -25,7 +25,7 @@ public:
   : pinIntA(pinA), pinIntB(pinB)
   {}
 
-  volatile void ProcessInterrupt(uint8_t pinInt) //volatile
+  void ProcessInterrupt(uint8_t pinInt) volatile
   {
     int8_t del = -1;           //default for pin A
     if (pinInt == pinIntB) del = 1; //if it's pin B, reverse everything
@@ -38,13 +38,13 @@ public:
     currTicks += del;
   }
 
-  int16_t TakeSnapshot(void) //volatile
+  int16_t TakeSnapshot(void) volatile
   {
     snapTicks = currTicks;
     return snapTicks;
   }
 
-  int16_t CalcDelta(void) //volatile
+  int16_t CalcDelta(void) volatile
   {
     int16_t delta = snapTicks - prevTicks;
     prevTicks = snapTicks;
@@ -53,8 +53,8 @@ public:
   }
 };
 
-Encoder encoder1(ENCODER_1A, ENCODER_1B);
-Encoder encoder2(ENCODER_2A, ENCODER_2B);
+volatile Encoder encoder1(ENCODER_1A, ENCODER_1B);
+volatile Encoder encoder2(ENCODER_2A, ENCODER_2B);
 
 void EncoderHandler1A(void) {encoder1.ProcessInterrupt(ENCODER_1A);}
 void EncoderHandler1B(void) {encoder1.ProcessInterrupt(ENCODER_1B);}
@@ -63,9 +63,6 @@ void EncoderHandler2B(void) {encoder2.ProcessInterrupt(ENCODER_2B);}
 
 void SetupEncoders(void)
 {
-//  encoder1 = new Encoder(ENCODER_1A, ENCODER_1B);
-//  encoder2 = new Encoder(ENCODER_2A, ENCODER_2B);
-  
   //(almost) every pin is an interrupt on the SAMD, so use attachInterrupt()
   attachInterrupt(ENCODER_1A, EncoderHandler1A, CHANGE);
   attachInterrupt(ENCODER_1B, EncoderHandler1B, CHANGE);

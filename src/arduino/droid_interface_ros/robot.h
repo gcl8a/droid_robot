@@ -112,6 +112,9 @@ public:
       //////////!!!!!!!!!
       wheelSpeeds = controller.CalcWheelSpeeds(); //wheel velocity is ticks / period
 
+      DEBUG_SERIAL.print(millis());
+      DEBUG_SERIAL.print('\t');
+
       DEBUG_SERIAL.print(wheelSpeeds[0]);
       DEBUG_SERIAL.print('\t');
       DEBUG_SERIAL.print(wheelSpeeds[1]);
@@ -158,14 +161,14 @@ public:
     SetTargetWheelSpeeds(speedLeft, speedRight);
   }
 
-  dvector EstimateWheelSpeeds(void)
-  {
-    dvector x(2);
-    x[0] = (wheelSpeeds[0] * LOOP_RATE) / (float)(TICKS_PER_METER);
-    x[1] = (wheelSpeeds[1] * LOOP_RATE) / (float)(TICKS_PER_METER);
-
-    return x;
-  }
+//  dvector EstimateWheelSpeeds(void)
+//  {
+//    dvector x(2);
+//    x[0] = (wheelSpeeds[0] * LOOP_RATE) / (float)(TICKS_PER_METER);
+//    x[1] = (wheelSpeeds[1] * LOOP_RATE) / (float)(TICKS_PER_METER);
+//
+//    return x;
+//  }
 
   ivector CommandMotors(const ivector& effort) //actuators, generically
   {
