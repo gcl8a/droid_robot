@@ -3,7 +3,7 @@
  * Serves as the interface between ROS nodes on the main board and motor drivers, etc.
  */
  
-//#define USE_USBCON
+//#define USE_USBCON //comment out to use Serial1 as the ROS interface; otherwise SerialUSB
 
 #include "ros_ugv.h"
 
@@ -15,7 +15,7 @@ void CmdVelCallback(const geometry_msgs::Twist& cmd_vel)
   robot.SetTargetSpeed(cmd_vel.linear.x, cmd_vel.angular.z);
 }
 
-//N.B.: No need to start SerialUSB manually in ROS, as the constructors take care of that for us
+//N.B.: No need to start ROS serial manually, as the constructors take care of that for us
 void setup()
 {
   DEBUG_SERIAL.begin(115200);

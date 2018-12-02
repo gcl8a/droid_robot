@@ -63,7 +63,7 @@ public:
     odom_quat.w = cos(theta / 2.0);
       
     geometry_msgs::TransformStamped odom_trans;
-    odom_trans.header.stamp = nh.now();//now; I don't like this...
+    odom_trans.header.stamp = nh.now();
     odom_trans.header.frame_id = "odom";
     odom_trans.child_frame_id = "base_link";
       

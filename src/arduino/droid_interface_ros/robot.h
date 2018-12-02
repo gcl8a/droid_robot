@@ -14,27 +14,7 @@
 
 #include "estimator.h"
 
-#define DESTINATION_TOLERANCE 0.1  //m
-#define DEFAULT_SPEED (0.4) //m/s
-#define DEFAULT_ROTATION_DIFFERENTIAL 0.15
-#define MAX_SPEED 0.6
-
-#define REFLECTANCE_L A0
-#define REFLECTANCE_R A1
-
-#define IDLE 0
-#define DEAD_RECKONING 1
-#define LINE_FOLLOWING 2
-#define SET_PI 3
-#define SET_PD_LF 4
-
-//#define BASE_SPEED 20
-unsigned K_pLF = 0;
-unsigned K_dLF = 0;
-int baseSpeed = 0;
-
-
-  /*
+ /*
  * Calculation for RADIANS_PER_TICK:
  * 7 magnets = 28 ticks / rotation
  * Gear ratio of 71:1 -> 1988 ticks / rotation 
@@ -42,11 +22,11 @@ int baseSpeed = 0;
  * 
  */
  
-#define RADIANS_PER_TICK (0.00316)
-#define RADIUS_WHEEL (0.081)
-#define TICKS_PER_METER 3906
-#define ROBOT_RADIUS 0.227
-#define ROBOT_RADIUS_IN_TICKS (ROBOT_RADIUS * TICKS_PER_METER)
+//#define RADIANS_PER_TICK (0.00316)
+//#define RADIUS_WHEEL (0.081)
+const uint16_t TICKS_PER_METER = 3906;
+const float ROBOT_RADIUS = 0.227;
+const float ROBOT_RADIUS_IN_TICKS = 887; //(ROBOT_RADIUS * TICKS_PER_METER)
 
 /*
  * Holds all the kinematics, both pose and velocities
@@ -71,7 +51,6 @@ protected:
   Sabertooth driver;
   MotionController controller;
 
-  //uint16_t radiusBase_mm = 227;
   float base_radius = 0.227;
 
   Pose currPose;
