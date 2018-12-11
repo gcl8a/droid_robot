@@ -5,13 +5,14 @@
 
 #include <ros.h>
 
-#include <tf/transform_broadcaster.h>
-#include <nav_msgs/Odometry.h>
+#include <std_msgs/UInt16.h>
+#include <std_msgs/UInt32.h>
 
-void CmdVelCallback(const geometry_msgs::Twist& cmd_vel);
+void CmdModeCallback(const std_msgs::UInt16&);
+void CmdMotorTargetCallback(const std_msgs::UInt32&);
 
-#define CMD_MOT_IDLE  0
-#define CMD_MOT_VEL   1
+//#define CMD_MOT_IDLE  0
+//#define CMD_MOT_VEL   1
 
 class ROSUGV : public UGV
 {
@@ -19,15 +20,20 @@ protected:
   //node handler
   ros::NodeHandle nh;
 
-  nav_msgs::Odometry odom; 
-  ros::Publisher odom_pub;
+  ros::Subscriber<std_msgs::UInt32> subMotorTargets;
+  ros::Publisher pubMotorSpeeds;
+  std_msgs::UInt32 motorDatum; //use a uint32 to pass motor speeds
 
-  tf::TransformBroadcaster odom_broadcaster;
-  
-  ros::Subscriber<geometry_msgs::Twist> subCmdVel;
+  ros::Subscriber<std_msgs::UInt16> subCmdMode;
+  ros::Publisher pubCmdSource;
+  std_msgs::UInt16 cmdSource; //use a uint16 to keep everything lined up
 
 public:
-  ROSUGV(void) : odom_pub("odom", &odom), subCmdVel("cmd_vel", CmdVelCallback)
+  ROSUGV(void) : 
+                  subMotorTargets("motor_targets", CmdMotorTargetCallback), //motor target is in encoder ticks per second
+                  pubMotorSpeeds("motor_speeds", &motorDatum), //motor speed is in encoder ticks per second
+                  subCmdMode("cmd_mode", CmdModeCallback),
+                  pubCmdSource("cmd_source", &cmdSource)
   {}
   
   void Init(void)
@@ -35,10 +41,12 @@ public:
     UGV::Init();
 
     nh.initNode();
-    nh.advertise(odom_pub);
 
-    nh.subscribe(subCmdVel);
-    odom_broadcaster.init(nh);
+    nh.subscribe(subMotorTargets);
+    nh.advertise(pubMotorSpeeds);
+
+    nh.subscribe(subCmdMode);
+    nh.advertise(pubCmdSource);
   }
 
   void MainLoop(void)
@@ -51,50 +59,29 @@ public:
   {
     UGV::ProcessPID();
 
-    //first, we'll publish the transform over tf                
-    geometry_msgs::Quaternion odom_quat;
-      
-    odom_quat.x = 0.0;
-    odom_quat.y = 0.0;
+    //publish motor speeds
+    ivector motorSpeedsPerSecond = motorSpeeds * LOOP_RATE;
+    memcpy(&motorDatum.data, &motorSpeedsPerSecond[0], 4);
+    pubMotorSpeeds.publish(&motorDatum);
 
-    //crap...this is a waste -- can I save cos_theta/2 ?
-    float theta = atan2(currPose.cos_theta, currPose.sin_theta);
-    odom_quat.z = sin(theta / 2.0);
-    odom_quat.w = cos(theta / 2.0);
-      
-    geometry_msgs::TransformStamped odom_trans;
-    odom_trans.header.stamp = nh.now();
-    odom_trans.header.frame_id = "odom";
-    odom_trans.child_frame_id = "base_link";
-      
-    odom_trans.transform.translation.x = currPose.x / TICKS_PER_METER;
-    odom_trans.transform.translation.y = currPose.y / TICKS_PER_METER;
-    odom_trans.transform.translation.z = 0.0;
-    odom_trans.transform.rotation = odom_quat;
-      
-    //send the transform
-    odom_broadcaster.sendTransform(odom_trans);
+    cmdSource.data = UGV::cmdSource;
+    pubCmdSource.publish(&cmdSource);
 
-    nav_msgs::Odometry odom;
-    odom.header.stamp = nh.now();
-    odom.header.frame_id = "odom";
-      
-    //set the position
-    odom.pose.pose.position.x = currPose.x / TICKS_PER_METER;
-    odom.pose.pose.position.y = currPose.y / TICKS_PER_METER;
-    odom.pose.pose.position.z = 0.0;
-    odom.pose.pose.orientation = odom_quat;
-      
-    //set the velocity
-    odom.child_frame_id = "base_link";
-    odom.twist.twist.linear.x = currPose.u / TICKS_PER_METER;
-    odom.twist.twist.linear.y = 0;
-    odom.twist.twist.angular.z = currPose.omega;
-      
-    //publish the message
-    odom_pub.publish(&odom);
+    return;
   }
-};
 
+  void HandleMotorTargetCommand(const std_msgs::UInt32& motor_targets)
+  {
+    if(UGV::cmdSource == CMD_SRC_ROS)
+    {
+      ivector targets(2);
+      memcpy(&targets[0], &motor_targets.data, 4);
+      targets /= LOOP_RATE;
+    
+      SetTargetMotorSpeeds(targets[0], targets[1]);
+    }
+  }
+
+};
 
 #endif

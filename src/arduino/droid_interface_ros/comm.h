@@ -4,7 +4,14 @@
 #include <RFM69.h>
 #include <vector.h>
 
-#define ivector TVector<int16_t>
+//#define ivector TVector<int16_t>
+
+enum CMD_SRC : uint16_t {CMD_SRC_NONE, CMD_SRC_ROS, CMD_SRC_RADIO};
+
+uint32_t RADIO_TIMEOUT = 500;
+uint32_t lastRadioRec = 0;
+
+#define USE_USBCON //comment out to use Serial1 as the ROS interface; otherwise SerialUSB
 
 #ifdef USE_USBCON
   #define DEBUG_SERIAL Serial1
@@ -48,34 +55,34 @@ bool CheckRadio(void)
 
 #define CMD_JOYSTICK 0x01
 
-ivector HandleRadio(void)
-{
-  ivector retVector;
-
-  //copy radio data to a local array
-  uint8_t length = radio.DATALEN;
-  uint8_t data[length];
-  for(int i = 0; i < length; i++)
-  {
-    data[i] = radio.DATA[i];
-  }
-  
-  if(length >=2) //valid packet -- at least a command
-  {
-    uint16_t cmd_type;
-    memcpy(&cmd_type, data, sizeof(cmd_type));
-
-    switch(cmd_type)
-    {
-      case CMD_JOYSTICK:
-        if(length != 8) return retVector;  //not the right sized packet: return zero length vector
-        retVector = ivector(3);
-        memcpy(&retVector[0], &data[2], 6);
-        return retVector;
-    }
-  }
-
-  return retVector;
-}
+//ivector HandleRadio(void)
+//{
+//  ivector retVector;
+//
+//  //copy radio data to a local array
+//  uint8_t length = radio.DATALEN;
+//  uint8_t data[length];
+//  for(int i = 0; i < length; i++)
+//  {
+//    data[i] = radio.DATA[i];
+//  }
+//  
+//  if(length >= 2) //valid packet -- at least a command
+//  {
+//    uint16_t cmd_type;
+//    memcpy(&cmd_type, data, sizeof(cmd_type));
+//
+//    switch(cmd_type)
+//    {
+//      case CMD_JOYSTICK:
+//        if(length != 8) return retVector;  //not the right sized packet: return zero length vector
+//        retVector = ivector(3);
+//        memcpy(&retVector[0], &data[2], 6); //x,y.z-button
+//        return retVector;
+//    }
+//  }
+//
+//  return retVector;
+//}
 
 #endif

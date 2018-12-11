@@ -84,7 +84,7 @@ public:
     DEBUG_SERIAL.println("/MotionController::Init");
   }
 
-  ivector CalcWheelSpeeds(void)
+  ivector CalcMotorSpeeds(void)
   {
     estimate[0] = encoder1.CalcDelta();
     estimate[1] = encoder2.CalcDelta();
@@ -121,10 +121,10 @@ public:
   {
     target = t;
 
-    DEBUG_SERIAL.print(target[0]);
-    DEBUG_SERIAL.print('\t');
-    DEBUG_SERIAL.print(target[1]);
-    DEBUG_SERIAL.print('\n');
+//    DEBUG_SERIAL.print(target[0]);
+//    DEBUG_SERIAL.print('\t');
+//    DEBUG_SERIAL.print(target[1]);
+//    DEBUG_SERIAL.print('\n');
 
     return target;
   }

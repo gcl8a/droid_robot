@@ -2,17 +2,19 @@
  * Main program for ROS-driven Droid UGV
  * Serves as the interface between ROS nodes on the main board and motor drivers, etc.
  */
- 
-//#define USE_USBCON //comment out to use Serial1 as the ROS interface; otherwise SerialUSB
 
 #include "ros_ugv.h"
 
-//goes in ros_ugv.cpp if I ever get my act together...
 ROSUGV robot;
 
-void CmdVelCallback(const geometry_msgs::Twist& cmd_vel)
+void CmdModeCallback(const std_msgs::UInt16& cmd_mode)
 {
-  robot.SetTargetSpeed(cmd_vel.linear.x, cmd_vel.angular.z);
+  robot.SetSource(cmd_mode.data);
+}
+
+void CmdMotorTargetCallback(const std_msgs::UInt32& motor_targets)
+{
+  robot.HandleMotorTargetCommand(motor_targets);
 }
 
 //N.B.: No need to start ROS serial manually, as the constructors take care of that for us
@@ -32,15 +34,6 @@ void loop(void)
 {
   robot.MainLoop();
 
-  if(CheckRadio())
-  {
-    ivector speeds = HandleRadio();
-    if(speeds.Length() == 3)
-    {
-      robot.SetTargetSpeed(speeds[0] / 1024.0, -speeds[1] / 256.0);
-    }
-  }
-  
   if(CheckDebugSerial())
   {
     //all in m/s, rad/s
@@ -53,7 +46,7 @@ void loop(void)
     DEBUG_SERIAL.print("Setting right = ");
     DEBUG_SERIAL.println(right);
 
-    robot.SetTargetSpeed(left, right);
+    robot.SetTargetMotorSpeeds(left, right);
 
     debugString = "";
   }
