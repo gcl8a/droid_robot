@@ -1,2 +1,3 @@
 # droid_robot
-Design files and (low-level) controller code for a SuperDroid Robot.
+
+Low-level ("Arduino") controller code for my Super Droid Robot.
