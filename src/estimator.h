@@ -8,7 +8,7 @@
 #define __ESTIMATOR_H
 
 #include <TIArray.h>
-#include <matrix.h>
+#include <matrix_uC.h>
 
 #define imatrix TMatrix<int16_t>
 #define ivector TVector<int16_t>
